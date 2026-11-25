@@ -1,6 +1,6 @@
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import type { ActivityState } from "@t3tools/plugin-api";
-import { PluginContext } from "@t3tools/plugin-api";
+import { PluginContext, PluginError } from "@t3tools/plugin-api";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
@@ -168,11 +168,15 @@ describe("relay requests", () => {
         ],
       ]);
       const issued: Array<string> = [];
+      const notSupported = Effect.fail(
+        new PluginError({ message: "data backup is not supported in this test" }),
+      );
       const optionalServices = { usage: { dailyTotals: () => Effect.succeed([]) } };
       const context = PluginContext.of({
         ...optionalServices,
         pluginId: "t3-connect-bridge",
         dataDir: "/nonexistent",
+        routes: { secret: "test-route-secret" },
         storage: {
           get: (key) => Effect.succeed(Option.fromNullishOr(storage.get(key))),
           set: (key, value) => Effect.sync(() => void storage.set(key, value)),
@@ -201,6 +205,12 @@ describe("relay requests", () => {
           changes: Stream.empty,
           read: () => Effect.succeed(null),
           activeThreadIds: Effect.succeed([]),
+        },
+        dataBackup: {
+          snapshot: notSupported,
+          stageRestore: () => notSupported,
+          pendingRestore: notSupported,
+          cancelRestore: notSupported,
         },
       });
 
