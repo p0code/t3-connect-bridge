@@ -20,6 +20,7 @@ import * as Schedule from "effect/Schedule";
 import * as Scope from "effect/Scope";
 import * as Semaphore from "effect/Semaphore";
 
+import { makeRouteIngress } from "./routeIngress.ts";
 import { BridgeConfig, type BridgeConfigPatch, type BridgeStatus } from "./actions.ts";
 import {
   classifyConnectorLine,
@@ -135,6 +136,18 @@ export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.E
   const provided = <A, E>(effect: Effect.Effect<A, E, BridgeServices>) =>
     effect.pipe(Effect.provideContext(services));
   const pluginScope = yield* Effect.scope;
+  const ingressOrigin = yield* Effect.cached(
+    Effect.gen(function* () {
+      if (ctx.routes === undefined) {
+        return yield* new PluginError({
+          message: "The host did not provide a plugin route secret.",
+        });
+      }
+      return yield* makeRouteIngress(yield* ctx.environment.localOrigin, ctx.routes.secret).pipe(
+        Scope.provide(pluginScope),
+      );
+    }),
+  );
   const state = yield* Ref.make<RuntimeState>({
     pendingSignIn: null,
     tunnel: "off",
@@ -334,7 +347,7 @@ export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.E
     if (relayUrl === null) {
       return yield* new PluginError({ message: "The relay URL must be an HTTPS origin." });
     }
-    const local = parseLocalOrigin(yield* ctx.environment.localOrigin);
+    const local = parseLocalOrigin(yield* ingressOrigin);
     const capabilities = {
       notificationsEnabled: true,
       liveActivitiesEnabled: true,

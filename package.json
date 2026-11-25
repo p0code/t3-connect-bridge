@@ -1,6 +1,7 @@
 {
   "name": "@t3tools/plugin-t3-connect-bridge",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -27,6 +28,5 @@
     "@effect/vitest": "catalog:",
     "@types/node": "catalog:",
     "vite-plus": "catalog:"
-  },
-  "license": "MIT"
+  }
 }

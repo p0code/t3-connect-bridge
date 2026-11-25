@@ -168,7 +168,9 @@ describe("relay requests", () => {
         ],
       ]);
       const issued: Array<string> = [];
+      const optionalServices = { usage: { dailyTotals: () => Effect.succeed([]) } };
       const context = PluginContext.of({
+        ...optionalServices,
         pluginId: "t3-connect-bridge",
         dataDir: "/nonexistent",
         storage: {
@@ -200,7 +202,6 @@ describe("relay requests", () => {
           read: () => Effect.succeed(null),
           activeThreadIds: Effect.succeed([]),
         },
-        usage: { dailyTotals: () => Effect.succeed([]) },
       });
 
       const bridge = yield* makeBridge(Effect.void).pipe(

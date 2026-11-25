@@ -10,6 +10,8 @@ cd p0code && vp i
 vp run --filter @t3tools/plugin-t3-connect-bridge typecheck
 ```
 
+The host provides `PluginContext.routes.secret` when `http:routes` is declared. Upstream's managed relay fixes the public origin and callback paths, so registration cannot carry custom webhook URLs or headers. The bridge registers a scoped loopback ingress as the tunnel destination; it adds `p0_route` only to health and credential-mint requests forwarded to the host. Other HTTP requests and WebSocket upgrades pass through unchanged. The relay's signed proofs are still required by both callbacks.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
