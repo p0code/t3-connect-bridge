@@ -1,19 +1,19 @@
-import {
-  PluginContext,
-  PluginError,
-  type PluginRouteHandler,
-  type PluginServices,
-} from "@t3tools/plugin-api";
+import { PluginContext, PluginError, type PluginRouteHandler } from "@t3tools/plugin-api";
 import * as Clock from "effect/Clock";
+import type * as Digest from "effect/crypto/Digest";
 import * as SecureRandom from "effect/crypto/SecureRandom";
+import type * as Signature from "effect/crypto/Signature";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
+import type * as FileSystem from "effect/FileSystem";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as Option from "effect/Option";
+import type * as Path from "effect/Path";
+import type * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as Schedule from "effect/Schedule";
@@ -119,10 +119,20 @@ export function makeReplayGuard() {
   };
 }
 
+type BridgeServices =
+  | PluginContext
+  | HttpClient.HttpClient
+  | FileSystem.FileSystem
+  | Path.Path
+  | ChildProcessSpawner.ChildProcessSpawner
+  | Digest.Digest
+  | SecureRandom.SecureRandom
+  | Signature.Signature;
+
 export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.Effect<void>) {
   const ctx = yield* PluginContext;
-  const services = yield* Effect.context<PluginServices>();
-  const provided = <A, E>(effect: Effect.Effect<A, E, PluginServices>) =>
+  const services = yield* Effect.context<BridgeServices>();
+  const provided = <A, E>(effect: Effect.Effect<A, E, BridgeServices>) =>
     effect.pipe(Effect.provideContext(services));
   const pluginScope = yield* Effect.scope;
   const state = yield* Ref.make<RuntimeState>({
@@ -393,7 +403,7 @@ export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.E
     yield* onLinked;
   }).pipe(Effect.mapError(toPluginError));
 
-  const link: Effect.Effect<void, PluginError, PluginServices> = linkLock.withPermits(1)(
+  const link: Effect.Effect<void, PluginError, BridgeServices> = linkLock.withPermits(1)(
     linkUnlocked.pipe(Effect.tapError((error) => setState({ error: error.message }))),
   );
 
@@ -642,7 +652,7 @@ export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.E
   yield* Effect.addFinalizer(() => cancelSignIn.pipe(Effect.andThen(releaseTunnel), Effect.ignore));
   yield* resume.pipe(Effect.forkIn(pluginScope));
 
-  const withStatus = <E>(effect: Effect.Effect<void, E, PluginServices>) =>
+  const withStatus = <E>(effect: Effect.Effect<void, E, BridgeServices>) =>
     provided(effect.pipe(Effect.andThen(publishStatus), Effect.andThen(status)));
 
   return {
