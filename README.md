@@ -9,3 +9,7 @@ git clone --recurse-submodules https://github.com/p0code/p0code
 cd p0code && vp i
 vp run --filter @t3tools/plugin-t3-connect-bridge typecheck
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
