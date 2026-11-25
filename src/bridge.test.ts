@@ -200,6 +200,7 @@ describe("relay requests", () => {
           read: () => Effect.succeed(null),
           activeThreadIds: Effect.succeed([]),
         },
+        usage: { dailyTotals: () => Effect.succeed([]) },
       });
 
       const bridge = yield* makeBridge(Effect.void).pipe(
