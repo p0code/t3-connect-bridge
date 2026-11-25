@@ -63,6 +63,8 @@ const describeFailure = Effect.fn("bridge.relay.describeFailure")(function* (
     onNone: () => `HTTP ${response.status}`,
     onSome: (error) => `${error._tag}${error.traceId ? `, trace ${error.traceId}` : ""}`,
   });
+  const limitExceeded =
+    Option.isSome(body) && body.value._tag === "RelayEnvironmentLinkLimitExceededError";
   // An expired proof is clock skew, which a retry can outlast.
   const expired = Option.isSome(body) && body.value._tag.includes("Expired");
   return new RelayRequestError({
@@ -76,7 +78,9 @@ const describeFailure = Effect.fn("bridge.relay.describeFailure")(function* (
             !expired
           ? "rejected"
           : "unavailable",
-    message: `T3 Connect refused the request (${detail}).`,
+    message: limitExceeded
+      ? 'Your T3 Connect account has reached its linked-environment limit. Unlink an unused machine in T3 Code (or migrate with "Keep environment ID" enabled) and try again.'
+      : `T3 Connect refused the request (${detail}).`,
   });
 });
 
