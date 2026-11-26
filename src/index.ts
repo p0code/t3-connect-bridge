@@ -13,7 +13,7 @@ export const t3ConnectBridge = definePlugin({
     name: "Unofficial T3 Connect bridge",
     description:
       "Links this environment to the official T3 Connect service, so T3 Code apps signed in to your T3 account can reach it and the store mobile app gets push notifications.",
-    version: "0.1.0",
+    version: "0.1.1",
     unofficial: true,
     externalServices: ["relay.t3.codes", "clerk.t3.codes", "Cloudflare Tunnel"],
     capabilities: [
@@ -24,6 +24,7 @@ export const t3ConnectBridge = definePlugin({
       "orchestration:read-activity",
     ],
     httpRoutes: [HEALTH_ROUTE, MINT_ROUTE],
+    apiVersion: 1,
   },
   actions: bridgeActions,
   start: Effect.gen(function* () {
@@ -49,3 +50,5 @@ export const t3ConnectBridge = definePlugin({
     };
   }),
 });
+
+export default t3ConnectBridge;

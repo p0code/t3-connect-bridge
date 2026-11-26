@@ -1,5 +1,6 @@
 {
   "name": "@t3tools/plugin-t3-connect-bridge",
+  "version": "0.1.1",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -15,7 +16,8 @@
   },
   "scripts": {
     "typecheck": "effect-tsgo tsrs --noEmit",
-    "test": "vp test run --config ../../vite.config.ts --dir ."
+    "test": "vp test run --config ../../vite.config.ts --dir .",
+    "bundle": "node scripts/build-bundle.mjs"
   },
   "dependencies": {
     "@t3tools/contracts": "workspace:*",
