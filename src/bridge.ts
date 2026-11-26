@@ -442,20 +442,21 @@ export const makeBridge = Effect.fn("bridge.make")(function* (onLinked: Effect.E
   );
 
   const unlinkUnlocked = Effect.gen(function* () {
-    const storedLink = yield* readLink;
+    const [storedLink, config] = yield* Effect.all([readLink, readConfig]);
     yield* stopTunnel;
     yield* ctx.storage.remove(KEYS.wantLinked);
-    if (storedLink !== null) {
-      const environmentId = yield* ctx.environment.environmentId;
-      yield* validToken.pipe(
-        Effect.flatMap((token) =>
-          relayRequest({
-            method: "DELETE",
-            url: `${storedLink.relayUrl}/v1/client/environment-links/${encodeURIComponent(environmentId)}`,
-            bearer: token.accessToken,
-            schema: OkResponse,
-          }),
-        ),
+    // A link can exist upstream without local state: another home, a migrated key, or a lost
+    // secret. Unlink is the only escape hatch for that, so ask the relay even with nothing stored.
+    const relayUrl = storedLink?.relayUrl ?? normalizeRelayUrl(config.relayUrl);
+    const environmentId = yield* ctx.environment.environmentId;
+    const token = yield* validToken.pipe(Effect.option);
+    if (relayUrl !== null && Option.isSome(token)) {
+      yield* relayRequest({
+        method: "DELETE",
+        url: `${relayUrl}/v1/client/environment-links/${encodeURIComponent(environmentId)}`,
+        bearer: token.value.accessToken,
+        schema: OkResponse,
+      }).pipe(
         Effect.catch((error) =>
           Effect.logWarning("T3 Connect did not confirm the unlink", { error }),
         ),

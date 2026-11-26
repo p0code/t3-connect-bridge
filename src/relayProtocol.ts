@@ -113,5 +113,7 @@ export const PublishResponse = Schema.Struct({ ok: Schema.Boolean });
 /** The relay's error body; only the parts worth showing. */
 export const RelayErrorBody = Schema.Struct({
   _tag: Schema.String,
+  /** Why the relay refused; `environment_key_mismatch` means another key owns this link. */
+  reason: Schema.optional(Schema.String),
   traceId: Schema.optional(Schema.String),
 });

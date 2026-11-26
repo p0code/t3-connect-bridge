@@ -53,16 +53,43 @@ export function parseLocalOrigin(localOrigin: string) {
   };
 }
 
+/**
+ * The relay's `reason` is the only actionable part of a refusal, so each one gets its own
+ * sentence. Unknown reasons still show the tag and reason verbatim.
+ */
+const REFUSAL_TEXT: Readonly<Record<string, string>> = {
+  environment_key_mismatch:
+    "This environment is already linked with a different key — Unlink it here and link again, or restore the old key",
+  invalid_signature_or_scope:
+    "T3 Connect rejected this machine's proof signature or scopes — Sign in again, then Link",
+  descriptor_mismatch: "T3 Connect rejected this machine's descriptor — update p0code, then Link",
+  replayed_nonce: "T3 Connect has seen this proof before — Link again",
+  challenge_invalid: "The link challenge expired or was already used — Link again",
+  origin_not_allowed: "T3 Connect does not allow this machine's origin",
+  endpoint_not_secure: "The tunnel endpoint must be HTTPS",
+};
+
+/** What the panel shows for a relay refusal: the reason first, the wire tags after it. */
+export function describeRefusal(error: {
+  readonly _tag: string;
+  readonly reason?: string | undefined;
+  readonly traceId?: string | undefined;
+}): string {
+  const code =
+    `${error._tag}${error.reason === undefined ? "" : `: ${error.reason}`}` +
+    `${error.traceId === undefined ? "" : `, trace ${error.traceId}`}`;
+  const advice = error.reason === undefined ? undefined : REFUSAL_TEXT[error.reason];
+  return advice === undefined
+    ? `T3 Connect refused the request (${code}).`
+    : `${advice} (${code}).`;
+}
+
 const describeFailure = Effect.fn("bridge.relay.describeFailure")(function* (
   response: HttpClientResponse.HttpClientResponse,
 ) {
   const body = yield* HttpClientResponse.schemaBodyJson(RelayErrorBody)(response).pipe(
     Effect.option,
   );
-  const detail = Option.match(body, {
-    onNone: () => `HTTP ${response.status}`,
-    onSome: (error) => `${error._tag}${error.traceId ? `, trace ${error.traceId}` : ""}`,
-  });
   const limitExceeded =
     Option.isSome(body) && body.value._tag === "RelayEnvironmentLinkLimitExceededError";
   // An expired proof is clock skew, which a retry can outlast.
@@ -80,7 +107,9 @@ const describeFailure = Effect.fn("bridge.relay.describeFailure")(function* (
           : "unavailable",
     message: limitExceeded
       ? 'Your T3 Connect account has reached its linked-environment limit. Unlink an unused machine in T3 Code (or migrate with "Keep environment ID" enabled) and try again.'
-      : `T3 Connect refused the request (${detail}).`,
+      : Option.isSome(body)
+        ? describeRefusal(body.value)
+        : `T3 Connect refused the request (HTTP ${response.status}).`,
   });
 });
 
